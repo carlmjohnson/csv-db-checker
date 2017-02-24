@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -15,7 +14,8 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalf("%+v", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -40,14 +40,16 @@ func run() error {
 
 		db, err := sql.Open("postgres", url)
 		if err != nil {
-			log.Println(errors.Wrapf(err, "Could not open DB %s", url))
+			fmt.Printf("✗ Could not open DB %s: %v\n", url, err)
 			continue
 		}
 
 		if err = db.Ping(); err != nil {
-			log.Println(errors.Wrapf(err, "Could not ping DB %s", url))
+			fmt.Printf("✗ Could not ping DB %s: %v\n", url, err)
 			continue
 		}
+
+		fmt.Printf("✓ %s\n", url)
 	}
 
 	return nil
@@ -61,6 +63,8 @@ func recordsFromFile(fname string) ([]record, error) {
 	defer f.Close()
 
 	reader := csv.NewReader(f)
+	reader.Comment = '#'
+
 	// Discard header
 	_, err = reader.Read()
 	if err != nil {
